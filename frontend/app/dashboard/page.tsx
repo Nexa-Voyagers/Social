@@ -85,7 +85,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Welcome back! Here's what's happening with your social media automation.
+            Welcome back! Here&apos;s what&apos;s happening with your social media automation.
           </p>
         </div>
 

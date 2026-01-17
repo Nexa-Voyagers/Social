@@ -139,7 +139,7 @@ export function PlatformsTab({ clientId }: { clientId: string }) {
           <div>
             <h4 className="font-medium text-gray-900 mb-2">📘 Facebook & Instagram</h4>
             <p className="text-sm text-gray-600">
-              Requires Meta Business account and app credentials. You'll need to create a Facebook app
+              Requires Meta Business account and app credentials. You&apos;ll need to create a Facebook app
               and configure OAuth redirects.
             </p>
           </div>
