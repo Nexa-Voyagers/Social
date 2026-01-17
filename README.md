@@ -25,56 +25,36 @@ AutoUpload is a comprehensive social media automation platform that goes beyond 
 - **Automated Scheduling** - Set it and forget it
 - **Analytics Dashboard** - Track performance across all platforms
 
-## 🏗️ Architecture
+## 🏗️ Project Structure
 
 ```
 autoupload/
-├── backend/              # Node.js + Express API
+├── app/                  # Next.js 14 app directory
+│   ├── clients/         # Client management pages
+│   ├── calendar/        # Content calendar
+│   ├── dashboard/       # Analytics dashboard
+│   └── posts/           # Published posts view
+├── components/          # React components
+│   ├── ui/              # UI components (Button, Card, etc.)
+│   └── client/          # Client-specific components
+├── lib/                 # Utilities and API client
+├── backend/             # Node.js + Express API
 │   ├── src/
-│   │   ├── controllers/  # Route handlers
-│   │   ├── services/     # Business logic
-│   │   │   ├── ai/       # AI content generation
-│   │   │   ├── social/   # Social media APIs
-│   │   │   └── video/    # Video generation (Remotion)
-│   │   ├── models/       # Database models
-│   │   ├── jobs/         # Background jobs (Bull queue)
-│   │   └── utils/        # Helpers
+│   │   ├── controllers/ # Route handlers
+│   │   ├── services/    # Business logic
+│   │   │   ├── ai/      # AI content generation
+│   │   │   ├── social/  # Social media APIs
+│   │   │   └── video/   # Video generation
+│   │   ├── models/      # Database models
+│   │   ├── jobs/        # Background jobs
+│   │   └── routes/      # API routes
 │   └── package.json
-├── frontend/             # Next.js dashboard
-│   ├── app/              # Next.js 14 app router
-│   │   ├── clients/      # Client management
-│   │   ├── calendar/     # Content calendar
-│   │   ├── assets/       # Asset library
-│   │   └── analytics/    # Performance dashboard
-│   └── package.json
-├── database/             # PostgreSQL schemas
-└── docker-compose.yml    # Local development
+├── database/            # PostgreSQL schemas
+├── public/              # Static assets
+├── next.config.js       # Next.js configuration
+├── package.json         # Frontend dependencies
+└── docker-compose.yml   # Local development setup
 ```
-
-## 🛠️ Tech Stack
-
-**Backend:**
-- Node.js + Express + TypeScript
-- PostgreSQL (data storage)
-- Redis + Bull (job queue)
-- AWS S3 / Cloudinary (asset storage)
-
-**Frontend:**
-- Next.js 14 (React)
-- TailwindCSS + shadcn/ui
-- TypeScript
-
-**AI & Media:**
-- OpenAI GPT-4 (text generation)
-- Stability AI (image generation)
-- Remotion (video generation)
-- FFmpeg (video processing)
-
-**Integrations:**
-- Meta Graph API (Facebook + Instagram)
-- LinkedIn API
-- Google My Business API
-- YouTube Data API v3
 
 ## 🚀 Quick Start
 
@@ -83,18 +63,17 @@ autoupload/
 - PostgreSQL 14+
 - Redis 6+
 - AWS Account (for S3) or Cloudinary
-- API Keys:
-  - OpenAI API key
-  - Meta/Facebook Developer account
-  - LinkedIn Developer account
-  - Google Cloud Console (GMB + YouTube)
+- API Keys: OpenAI, Meta/Facebook, LinkedIn, Google Cloud
 
 ### Installation
 
 ```bash
-# Clone the repository
+# Clone repository
 git clone <repo-url>
 cd autoupload
+
+# Install frontend dependencies
+npm install
 
 # Install backend dependencies
 cd backend
@@ -102,22 +81,17 @@ npm install
 cp .env.example .env
 # Edit .env with your API keys
 
-# Install frontend dependencies
-cd ../frontend
-npm install
-cp .env.example .env.local
-
-# Start PostgreSQL and Redis (Docker)
+# Start database and Redis (Docker)
 cd ..
 docker-compose up -d db redis
 
-# Run database migrations
+# Run migrations
 cd backend
 npm run migrate
 
 # Start development servers
 npm run dev              # Backend (port 3001)
-cd ../frontend
+cd ..
 npm run dev              # Frontend (port 3000)
 ```
 
@@ -125,142 +99,116 @@ Visit `http://localhost:3000` to access the dashboard.
 
 ## 📝 Usage Workflow
 
-1. **Add Client** - Create client profile with branding (logo, colors, fonts)
-2. **Upload Assets** - Add all images, videos, graphics for the client
-3. **Create Content Calendar** - Define 30-day plan:
-   - Date & time for each post
-   - Caption/content
-   - Hashtags
-   - Visual style instructions
-   - Target platforms
-4. **AI Generates Content** - System creates:
-   - Branded image posts
-   - Engaging reels with transitions
-   - Stories with brand elements
-5. **Auto-Posting** - Content posts automatically per schedule
-6. **Monitor Analytics** - Track performance across all platforms
+1. **Add Client** - Create client profile with branding
+2. **Upload Assets** - Add images, videos, logos
+3. **Create Content Calendar** - Schedule 30-day plan
+4. **AI Generates Content** - Automated content creation
+5. **Auto-Posting** - Posts go live per schedule
+6. **Monitor Analytics** - Track performance
+
+## 🛠️ Tech Stack
+
+**Frontend:**
+- Next.js 14 (App Router)
+- React 18
+- TypeScript
+- TailwindCSS + shadcn/ui
+- TanStack Query
+
+**Backend:**
+- Node.js + Express + TypeScript
+- PostgreSQL (Sequelize ORM)
+- Redis + Bull (job queue)
+- AWS S3 (storage)
+
+**AI & Media:**
+- OpenAI GPT-4 (caption generation)
+- DALL-E (image generation)
+- FFmpeg (video processing)
+- Remotion (programmatic videos)
+
+**Integrations:**
+- Meta Graph API (Facebook + Instagram)
+- LinkedIn API
+- Google My Business API
+- YouTube Data API v3
+
+## 🚢 Deployment
+
+### Vercel (Frontend)
+```bash
+# Frontend is at root level - auto-detected by Vercel
+# Just connect your repo and deploy!
+```
+
+### Backend Options
+- **Railway**: Deploy backend separately
+- **AWS ECS**: Containerized deployment
+- **Heroku**: Quick deployment
+- **Docker**: Use included docker-compose.yml
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions.
+
+## 📚 Documentation
+
+- **[QUICKSTART.md](./QUICKSTART.md)** - Get started in minutes
+- **[SETUP.md](./SETUP.md)** - Detailed setup guide
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Deployment instructions
 
 ## 🔑 Environment Variables
 
 **Backend (.env):**
 ```env
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/autoupload
-REDIS_URL=redis://localhost:6379
-
-# Storage
-AWS_ACCESS_KEY_ID=your_key
-AWS_SECRET_ACCESS_KEY=your_secret
-AWS_S3_BUCKET=autoupload-assets
-AWS_REGION=us-east-1
-
-# AI Services
+DATABASE_URL=postgresql://...
+REDIS_URL=redis://...
 OPENAI_API_KEY=sk-...
-STABILITY_API_KEY=sk-...
-
-# Social Media APIs
-META_APP_ID=your_app_id
-META_APP_SECRET=your_app_secret
-LINKEDIN_CLIENT_ID=your_client_id
-LINKEDIN_CLIENT_SECRET=your_client_secret
-GOOGLE_CLIENT_ID=your_client_id
-GOOGLE_CLIENT_SECRET=your_client_secret
-
-# App
-PORT=3001
-NODE_ENV=development
-JWT_SECRET=your_jwt_secret
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+META_APP_ID=...
+META_APP_SECRET=...
+LINKEDIN_CLIENT_ID=...
+GOOGLE_CLIENT_ID=...
 ```
 
-## 🎨 Content Generation Features
+**Frontend (.env.local):**
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001
+```
 
-### Image Posts
+## 📊 Features
+
+### Content Generation
 - Automatic text overlay with brand fonts
 - Logo placement
 - Brand color schemes
 - Platform-optimized dimensions
-- Watermarking
-
-### Reels/Videos
-- Automated scene creation from images
-- Text animations and transitions
-- Background music (royalty-free)
-- Brand intro/outro
-- Platform-specific formats (9:16 for Reels, Stories)
+- AI-powered image generation
+- Video/reel creation with transitions
 
 ### Multi-Platform Optimization
-- **Instagram**: 1080x1080 (feed), 1080x1920 (reels/stories)
-- **Facebook**: 1200x630 (feed), 1080x1920 (stories)
-- **LinkedIn**: 1200x627 (posts), 1920x1080 (videos)
-- **GMB**: 720x720 (posts)
-- **YouTube**: 1920x1080 (videos), 1080x1920 (shorts)
-
-## 📊 Database Schema
-
-**Core Tables:**
-- `clients` - Client profiles and branding
-- `assets` - Uploaded images, videos, logos
-- `content_calendar` - Scheduled posts (30-day plans)
-- `generated_content` - AI-created media
-- `posts` - Posted content tracking
-- `platform_accounts` - Connected social media accounts
-- `analytics` - Performance metrics
+- Instagram: 1080x1080 (feed), 1080x1920 (reels/stories)
+- Facebook: 1200x630 (feed), 1080x1920 (stories)
+- LinkedIn: 1200x627 (posts), 1920x1080 (videos)
+- GMB: 720x720 (posts)
+- YouTube: 1920x1080 (videos), 1080x1920 (shorts)
 
 ## 🔄 Automation Flow
 
 ```
-1. Content Calendar Entry Created
-   ↓
-2. Scheduler Picks Up Job (Bull Queue)
-   ↓
-3. AI Service Generates Content:
-   - GPT-4 refines caption
-   - Generate/select image
-   - Create reel with Remotion
-   ↓
-4. Content Review (optional)
-   ↓
-5. Multi-Platform Posting:
-   - Facebook
-   - Instagram
-   - LinkedIn
-   - GMB
-   - YouTube
-   ↓
-6. Track & Store Analytics
-   ↓
-7. Send Success Notification
+Content Calendar Entry → Scheduler → AI Generation →
+Multi-Platform Posting → Analytics Tracking → Notifications
 ```
-
-## 🚢 Deployment
-
-### Docker Production
-```bash
-# Build and run with Docker Compose
-docker-compose -f docker-compose.prod.yml up -d
-
-# Or deploy to cloud (AWS ECS, Google Cloud Run, etc.)
-```
-
-### Manual Deployment
-- Backend: PM2, Node.js server
-- Frontend: Vercel, Netlify, or custom server
-- Database: Managed PostgreSQL (AWS RDS, Supabase)
-- Redis: AWS ElastiCache or Upstash
 
 ## 📈 Roadmap
 
 - [x] Multi-client management
-- [x] Asset library
-- [x] Content calendar
-- [x] AI image generation
-- [x] AI reel generation
+- [x] AI content generation
 - [x] Multi-platform posting
-- [ ] Analytics dashboard
+- [x] Content calendar
+- [ ] Advanced analytics
 - [ ] Auto-repost top performers
-- [ ] AI-powered content suggestions
-- [ ] Bulk content generation
-- [ ] Team collaboration features
+- [ ] AI content suggestions
+- [ ] Team collaboration
 - [ ] White-label options
 
 ## 📄 License
@@ -269,7 +217,7 @@ Proprietary - All rights reserved
 
 ## 🤝 Support
 
-For issues or questions, contact: [your-email@example.com]
+For questions or issues, see documentation or contact support.
 
 ---
 
