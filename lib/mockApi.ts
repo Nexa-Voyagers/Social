@@ -1,6 +1,8 @@
 // Mock API for demo mode using localStorage
 // This allows the frontend to work without a backend
 
+import { AxiosResponse } from 'axios';
+
 interface Client {
   id: string;
   name: string;
@@ -65,16 +67,27 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
+// Create mock Axios response
+const createMockResponse = <T>(data: T): AxiosResponse<T> => {
+  return {
+    data,
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    config: {} as any
+  } as AxiosResponse<T>;
+};
+
 export const mockClientsApi = {
   getAll: async () => {
     const clients = getStorageData<Client>('autoupload_clients');
-    return { data: { data: clients } };
+    return createMockResponse({ data: clients });
   },
 
   getById: async (id: string) => {
     const clients = getStorageData<Client>('autoupload_clients');
     const client = clients.find(c => c.id === id);
-    return { data: { data: client } };
+    return createMockResponse({ data: client });
   },
 
   create: async (data: Omit<Client, 'id' | 'createdAt'>) => {
@@ -86,7 +99,7 @@ export const mockClientsApi = {
     };
     clients.push(newClient);
     setStorageData('autoupload_clients', clients);
-    return { data: { data: newClient } };
+    return createMockResponse({ data: newClient });
   },
 
   update: async (id: string, data: Partial<Client>) => {
@@ -95,7 +108,7 @@ export const mockClientsApi = {
     if (index !== -1) {
       clients[index] = { ...clients[index], ...data };
       setStorageData('autoupload_clients', clients);
-      return { data: { data: clients[index] } };
+      return createMockResponse({ data: clients[index] });
     }
     throw new Error('Client not found');
   },
@@ -104,7 +117,7 @@ export const mockClientsApi = {
     const clients = getStorageData<Client>('autoupload_clients');
     const filtered = clients.filter(c => c.id !== id);
     setStorageData('autoupload_clients', filtered);
-    return { data: { success: true } };
+    return createMockResponse({ success: true });
   }
 };
 
@@ -112,7 +125,7 @@ export const mockAssetsApi = {
   getByClient: async (clientId: string) => {
     const assets = getStorageData<Asset>('autoupload_assets');
     const clientAssets = assets.filter(a => a.clientId === clientId);
-    return { data: { data: clientAssets } };
+    return createMockResponse({ data: clientAssets });
   },
 
   upload: async (clientId: string, formData: FormData) => {
@@ -138,14 +151,14 @@ export const mockAssetsApi = {
 
     assets.push(newAsset);
     setStorageData('autoupload_assets', assets);
-    return { data: { data: newAsset } };
+    return createMockResponse({ data: newAsset });
   },
 
   delete: async (id: string) => {
     const assets = getStorageData<Asset>('autoupload_assets');
     const filtered = assets.filter(a => a.id !== id);
     setStorageData('autoupload_assets', filtered);
-    return { data: { success: true } };
+    return createMockResponse({ success: true });
   }
 };
 
@@ -153,12 +166,12 @@ export const mockCalendarApi = {
   getByClient: async (clientId: string) => {
     const entries = getStorageData<ContentCalendar>('autoupload_calendar');
     const clientEntries = entries.filter(e => e.clientId === clientId);
-    return { data: { data: clientEntries } };
+    return createMockResponse({ data: clientEntries });
   },
 
   getAll: async () => {
     const entries = getStorageData<ContentCalendar>('autoupload_calendar');
-    return { data: { data: entries } };
+    return createMockResponse({ data: entries });
   },
 
   create: async (data: Omit<ContentCalendar, 'id' | 'createdAt'>) => {
@@ -171,7 +184,7 @@ export const mockCalendarApi = {
     };
     entries.push(newEntry);
     setStorageData('autoupload_calendar', entries);
-    return { data: { data: newEntry } };
+    return createMockResponse({ data: newEntry });
   },
 
   update: async (id: string, data: Partial<ContentCalendar>) => {
@@ -180,7 +193,7 @@ export const mockCalendarApi = {
     if (index !== -1) {
       entries[index] = { ...entries[index], ...data };
       setStorageData('autoupload_calendar', entries);
-      return { data: { data: entries[index] } };
+      return createMockResponse({ data: entries[index] });
     }
     throw new Error('Entry not found');
   },
@@ -189,28 +202,28 @@ export const mockCalendarApi = {
     const entries = getStorageData<ContentCalendar>('autoupload_calendar');
     const filtered = entries.filter(e => e.id !== id);
     setStorageData('autoupload_calendar', filtered);
-    return { data: { success: true } };
+    return createMockResponse({ success: true });
   }
 };
 
 export const mockPostsApi = {
   getByClient: async (clientId: string) => {
-    return { data: { data: [] } };
+    return createMockResponse({ data: [] });
   },
 
   getAll: async () => {
-    return { data: { data: [] } };
+    return createMockResponse({ data: [] });
   },
 
   getById: async (id: string) => {
-    return { data: { data: null } };
+    return createMockResponse({ data: null });
   }
 };
 
 export const mockPlatformAccountsApi = {
   getByClient: async (clientId: string) => {
     const accounts = getStorageData('autoupload_platforms');
-    return { data: { data: accounts.filter((a: any) => a.clientId === clientId) } };
+    return createMockResponse({ data: accounts.filter((a: any) => a.clientId === clientId) });
   },
 
   connect: async (clientId: string, platform: string) => {
@@ -224,14 +237,14 @@ export const mockPlatformAccountsApi = {
     };
     accounts.push(newAccount);
     setStorageData('autoupload_platforms', accounts);
-    return { data: { data: newAccount } };
+    return createMockResponse({ data: newAccount });
   },
 
   disconnect: async (id: string) => {
     const accounts = getStorageData('autoupload_platforms');
     const filtered = accounts.filter((a: any) => a.id !== id);
     setStorageData('autoupload_platforms', filtered);
-    return { data: { success: true } };
+    return createMockResponse({ success: true });
   }
 };
 
