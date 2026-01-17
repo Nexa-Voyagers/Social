@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  swcMinify: true,
   images: {
     domains: [
       'localhost',
@@ -18,6 +19,11 @@ const nextConfig = {
   },
   typescript: {
     ignoreBuildErrors: false
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb'
+    }
   }
 };
 
