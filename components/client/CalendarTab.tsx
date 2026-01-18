@@ -263,7 +263,7 @@ export function CalendarTab({ clientId, clientName }: { clientId: string; client
             <li>✅ Posts to all connected platforms (Facebook, Instagram, LinkedIn)</li>
           </ul>
           <p className="text-xs text-blue-600 mt-4">
-            💡 Tip: Update Business Intelligence or upload new images anytime, then click "Regenerate All" to refresh your content calendar!
+            💡 Tip: Update Business Intelligence or upload new images anytime, then click &quot;Regenerate All&quot; to refresh your content calendar!
           </p>
         </CardContent>
       </Card>
