@@ -26,6 +26,7 @@ export function AssetsTab({ clientId }: { clientId: string }) {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
   const [logoPlacement, setLogoPlacement] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
   const [logoSize, setLogoSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [logoOpacity, setLogoOpacity] = useState(90);
@@ -47,20 +48,66 @@ export function AssetsTab({ clientId }: { clientId: string }) {
   }, [fetchAssets]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    setUploading(true);
-    try {
-      for (const file of acceptedFiles) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('name', file.name);
-        formData.append('type', file.type.startsWith('image/') ? 'image' : 'video');
+    if (acceptedFiles.length === 0) {
+      alert('No valid files selected. Please upload images (PNG, JPG, GIF, WebP) or videos (MP4, MOV, AVI, WebM).');
+      return;
+    }
 
-        await assetsApi.upload(clientId, formData);
+    setUploading(true);
+    setUploadProgress(`Uploading 0 of ${acceptedFiles.length} files...`);
+
+    try {
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < acceptedFiles.length; i++) {
+        const file = acceptedFiles[i];
+        setUploadProgress(`Uploading ${i + 1} of ${acceptedFiles.length}: ${file.name}`);
+
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('name', file.name);
+
+          // Determine file type based on MIME type
+          let fileType = 'image';
+          if (file.type.startsWith('video/')) {
+            fileType = 'video';
+          } else if (file.type.startsWith('image/')) {
+            fileType = 'image';
+          } else {
+            // Fallback to extension check
+            const ext = file.name.split('.').pop()?.toLowerCase();
+            if (['mp4', 'mov', 'avi', 'webm', 'mkv', 'flv'].includes(ext || '')) {
+              fileType = 'video';
+            }
+          }
+
+          formData.append('type', fileType);
+
+          await assetsApi.upload(clientId, formData);
+          successCount++;
+          console.log(`✅ Uploaded: ${file.name} (${fileType})`);
+        } catch (fileError) {
+          failCount++;
+          console.error(`❌ Failed to upload ${file.name}:`, fileError);
+        }
       }
+
       await fetchAssets();
+
+      // Show result
+      if (failCount === 0) {
+        setUploadProgress(`✅ Successfully uploaded ${successCount} file(s)!`);
+      } else {
+        setUploadProgress(`⚠️ Uploaded ${successCount}, failed ${failCount} file(s)`);
+      }
+
+      setTimeout(() => setUploadProgress(''), 3000);
     } catch (error) {
       console.error('Failed to upload assets:', error);
       alert('Failed to upload files. Please try again.');
+      setUploadProgress('');
     } finally {
       setUploading(false);
     }
@@ -93,9 +140,24 @@ export function AssetsTab({ clientId }: { clientId: string }) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    multiple: true,
+    maxFiles: 50,
     accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
-      'video/*': ['.mp4', '.mov', '.avi', '.webm']
+      'image/png': ['.png'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/gif': ['.gif'],
+      'image/webp': ['.webp'],
+      'video/mp4': ['.mp4'],
+      'video/quicktime': ['.mov'],
+      'video/x-msvideo': ['.avi'],
+      'video/webm': ['.webm'],
+      'video/x-matroska': ['.mkv']
+    },
+    onDropRejected: (fileRejections) => {
+      const messages = fileRejections.map(rejection =>
+        `${rejection.file.name}: ${rejection.errors.map(e => e.message).join(', ')}`
+      );
+      alert(`Some files were rejected:\n${messages.join('\n')}`);
     }
   });
 
@@ -260,29 +322,47 @@ export function AssetsTab({ clientId }: { clientId: string }) {
             className={`
               border-2 border-dashed rounded-lg p-10 text-center cursor-pointer
               transition-colors
-              ${isDragActive
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-300 hover:border-gray-400'
+              ${uploading ? 'border-green-500 bg-green-50 pointer-events-none' :
+                isDragActive ? 'border-blue-500 bg-blue-50' :
+                'border-gray-300 hover:border-gray-400'
               }
             `}
           >
             <input {...getInputProps()} />
-            <div className="text-5xl mb-3">📁</div>
+            <div className="text-5xl mb-3">{uploading ? '⏳' : '📁'}</div>
             {uploading ? (
-              <p className="text-gray-600">Uploading...</p>
+              <div className="space-y-2">
+                <p className="text-gray-900 font-medium">{uploadProgress}</p>
+                <div className="w-full bg-gray-200 rounded-full h-2 max-w-md mx-auto">
+                  <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+                </div>
+                <p className="text-xs text-gray-500">Please wait, uploading files...</p>
+              </div>
             ) : isDragActive ? (
-              <p className="text-blue-600">Drop the files here...</p>
+              <div>
+                <p className="text-blue-600 font-medium mb-1">Drop the files here...</p>
+                <p className="text-sm text-gray-500">Upload multiple images and videos at once!</p>
+              </div>
             ) : (
               <>
                 <p className="text-gray-900 font-medium mb-1">
-                  Drag & drop media files, or click to select
+                  Drag & drop multiple files, or click to select
                 </p>
-                <p className="text-sm text-gray-500">
-                  Images: PNG, JPG, GIF, WebP • Videos: MP4, MOV, AVI, WebM
+                <p className="text-sm text-gray-500 mb-2">
+                  Images: PNG, JPG, GIF, WebP • Videos: MP4, MOV, AVI, WebM, MKV
+                </p>
+                <p className="text-xs text-blue-600">
+                  ✨ You can upload up to 50 files at once!
                 </p>
               </>
             )}
           </div>
+
+          {uploadProgress && !uploading && (
+            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800 text-center">{uploadProgress}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
