@@ -9,6 +9,7 @@ import { clientsApi, assetsApi, calendarApi, platformAccountsApi } from '@/lib/a
 import { AssetsTab } from '@/components/client/AssetsTab';
 import { CalendarTab } from '@/components/client/CalendarTab';
 import { PlatformsTab } from '@/components/client/PlatformsTab';
+import { BusinessProfileTab } from '@/components/client/BusinessProfileTab';
 
 interface Client {
   id: string;
@@ -31,7 +32,7 @@ export default function ClientDetailPage() {
 
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'assets' | 'calendar' | 'platforms'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'businessProfile' | 'assets' | 'calendar' | 'platforms'>('businessProfile');
 
   const fetchClient = useCallback(async () => {
     try {
@@ -100,10 +101,11 @@ export default function ClientDetailPage() {
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
             {[
-              { id: 'overview', label: 'Overview', icon: '📋' },
+              { id: 'businessProfile', label: 'Business Intelligence', icon: '🤖' },
               { id: 'assets', label: 'Assets', icon: '🖼️' },
-              { id: 'calendar', label: 'Content Calendar', icon: '📅' },
-              { id: 'platforms', label: 'Platforms', icon: '🌐' }
+              { id: 'platforms', label: 'Platforms', icon: '🌐' },
+              { id: 'calendar', label: 'Auto-Generated Posts', icon: '📅' },
+              { id: 'overview', label: 'Overview', icon: '📋' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -125,17 +127,20 @@ export default function ClientDetailPage() {
 
         {/* Tab Content */}
         <div>
-          {activeTab === 'overview' && (
-            <OverviewTab client={client} />
+          {activeTab === 'businessProfile' && (
+            <BusinessProfileTab clientId={clientId} clientName={client.name} />
           )}
           {activeTab === 'assets' && (
             <AssetsTab clientId={clientId} />
           )}
+          {activeTab === 'platforms' && (
+            <PlatformsTab clientId={clientId} />
+          )}
           {activeTab === 'calendar' && (
             <CalendarTab clientId={clientId} clientName={client.name} />
           )}
-          {activeTab === 'platforms' && (
-            <PlatformsTab clientId={clientId} />
+          {activeTab === 'overview' && (
+            <OverviewTab client={client} />
           )}
         </div>
       </div>
