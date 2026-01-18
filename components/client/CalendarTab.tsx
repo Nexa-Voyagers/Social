@@ -60,21 +60,40 @@ export function CalendarTab({ clientId, clientName }: { clientId: string; client
 
       let contentTypeIndex = 0;
 
+      // Filter available images and videos
+      const images = assets.filter((a: any) => a.type === 'image');
+      const videos = assets.filter((a: any) => a.type === 'video');
+      const allVisuals = [...images, ...videos];
+
       for (let day = 0; day < totalDays; day++) {
         for (let postNum = 0; postNum < postsPerDay; postNum++) {
           const postDate = addDays(new Date(), day);
           const contentType = contentTypes[contentTypeIndex % contentTypes.length];
           contentTypeIndex++;
 
-          // Select random theme
-          const theme = strategy.contentThemes[Math.floor(Math.random() * strategy.contentThemes.length)] || 'General Update';
+          // Select theme sequentially with variation
+          const themeIndex = (day * postsPerDay + postNum) % strategy.contentThemes.length;
+          const theme = strategy.contentThemes[themeIndex] || 'General Update';
 
-          // Select random asset
-          const images = assets.filter((a: any) => a.type === 'image');
-          const randomImage = images[Math.floor(Math.random() * images.length)];
+          // Cycle through visuals sequentially for variety (not random)
+          const visualIndex = (day * postsPerDay + postNum) % Math.max(allVisuals.length, 1);
+          const selectedVisual = allVisuals[visualIndex];
 
-          // Generate caption based on theme and type
-          const caption = generateCaption(contentType, theme, clientData.businessProfile, strategy);
+          // Generate unique caption with variation
+          const caption = generateIntelligentCaption(
+            contentType,
+            theme,
+            clientData.businessProfile,
+            strategy,
+            day * postsPerDay + postNum // Pass index for variation
+          );
+
+          // Generate varied hashtags (rotate and randomize count)
+          const hashtags = generateVariedHashtags(
+            strategy.hashtagStrategy,
+            theme,
+            day * postsPerDay + postNum
+          );
 
           generatedPosts.push({
             id: `post-${day}-${postNum}`,
@@ -82,9 +101,10 @@ export function CalendarTab({ clientId, clientName }: { clientId: string; client
             time: getOptimalPostTime(postNum),
             type: contentType,
             caption,
-            imageUrl: randomImage?.url,
+            imageUrl: selectedVisual?.type === 'image' ? selectedVisual.url : undefined,
+            videoUrl: selectedVisual?.type === 'video' ? selectedVisual.url : undefined,
             platforms: ['Facebook', 'Instagram', 'LinkedIn'],
-            hashtags: strategy.hashtagStrategy.slice(0, 5),
+            hashtags,
             status: 'scheduled'
           });
         }
@@ -272,24 +292,116 @@ export function CalendarTab({ clientId, clientName }: { clientId: string; client
 }
 
 // Helper functions
-function generateCaption(
+function generateIntelligentCaption(
   type: string,
   theme: string,
   profile: any,
-  strategy: any
+  strategy: any,
+  postIndex: number
 ): string {
-  const business = profile.businessDescription.split('.')[0];
-  const audience = profile.targetAudience.split('.')[0];
-  const cta = strategy.callToActions[0] || 'Learn more';
+  // Extract business intelligence
+  const businessDesc = profile.businessDescription || '';
+  const audience = profile.targetAudience || '';
+  const brandVoice = profile.brandVoice || 'professional';
+  const keyMessages = profile.keyMessages || [];
+  const brandValues = profile.brandValues || [];
 
-  const templates = {
-    educational: `Did you know? ${theme} is crucial for ${audience}. ${business} helps you master this. ${cta}!`,
-    promotional: `Special update about ${theme}! ${business} is here to help. ${cta} today!`,
-    engaging: `Question for you: How does ${theme} impact your success? ${business} has the answers. ${cta}!`,
-    inspirational: `${theme} can transform your journey. ${business} believes in your potential. ${cta}!`
+  // Rotate through CTAs for variety
+  const ctas = strategy.callToActions.length > 0
+    ? strategy.callToActions
+    : ['Learn more', 'Get started', 'Discover more', 'Join us', 'Find out how'];
+  const cta = ctas[postIndex % ctas.length];
+
+  // Get a key message if available
+  const keyMessage = keyMessages.length > 0
+    ? keyMessages[postIndex % keyMessages.length]
+    : '';
+
+  // Get a brand value if available
+  const brandValue = brandValues.length > 0
+    ? brandValues[postIndex % brandValues.length]
+    : '';
+
+  // Multiple template variations for each content type
+  const templates: Record<string, string[]> = {
+    educational: [
+      `💡 ${theme} Insight:\n\n${keyMessage || `Understanding ${theme} is essential for ${audience}.`}\n\n${businessDesc.split('.')[0]}.\n\n${cta}!`,
+      `📚 Let's talk about ${theme}.\n\nFor ${audience}, this matters because it directly impacts your success. ${keyMessage || `We've helped countless clients master this.`}\n\n${cta} 👉`,
+      `🎓 Did you know?\n\n${theme} is one of the most overlooked aspects by ${audience}. ${keyMessage || `But it doesn't have to be complicated.`}\n\n${businessDesc.split('.')[0]}. ${cta}!`,
+      `🔍 Deep dive into ${theme}:\n\n${keyMessage || `Here's what ${audience} need to know...`}\n\nWe believe ${brandValue || 'in empowering our clients with knowledge'}.\n\n${cta}!`,
+      `✨ Expert tip about ${theme}:\n\n${keyMessage || `Most ${audience} miss this crucial detail.`} Let us show you the difference.\n\n${cta}!`,
+      `📖 ${theme} explained simply:\n\nWe understand that ${audience} are busy. That's why we make it easy. ${keyMessage || businessDesc.split('.')[0]}.\n\n${cta}!`,
+      `🧠 Smart thinking about ${theme}:\n\n${keyMessage || `The best ${audience} know this secret.`} Ready to level up?\n\n${cta}!`
+    ],
+    promotional: [
+      `🎉 Exciting news about ${theme}!\n\n${businessDesc.split('.')[0]}. Perfect for ${audience}.\n\n${cta} today! 🚀`,
+      `🌟 Special focus on ${theme}:\n\nWe're proud to offer solutions that ${audience} love. ${keyMessage || 'Quality and results are our priority.'}\n\n${cta}!`,
+      `⭐ Why choose us for ${theme}?\n\nSimple: ${brandValue || 'We deliver results'}. ${businessDesc.split('.')[0]}.\n\nReady to see the difference? ${cta}!`,
+      `🔥 ${theme} made simple!\n\nDesigned specifically for ${audience}, our approach is different. ${keyMessage || 'We focus on what matters most to you.'}\n\n${cta}!`,
+      `💼 Professional ${theme} solutions:\n\n${businessDesc.split('.')[0]}. Trusted by ${audience} worldwide.\n\n${cta} 👉`,
+      `✅ Looking for ${theme} expertise?\n\nYou're in the right place! ${keyMessage || `We specialize in helping ${audience} succeed.`}\n\n${cta}!`,
+      `🎯 ${theme} tailored for ${audience}:\n\n${brandValue || 'Excellence'} is our standard. ${businessDesc.split('.')[0]}.\n\n${cta} today!`
+    ],
+    engaging: [
+      `🤔 Quick question for ${audience}:\n\nHow does ${theme} fit into your strategy? ${keyMessage || 'We'd love to hear your thoughts!'}\n\nDrop a comment below! 👇`,
+      `💬 Let's discuss ${theme}!\n\nWhat's your biggest challenge with this? ${businessDesc.split('.')[0]} and we're here to help.\n\nShare your experience! 💭`,
+      `👋 ${audience}, we need your input!\n\n${theme} - love it or find it challenging? ${keyMessage || 'Your feedback helps us serve you better.'}\n\nComment below! ⬇️`,
+      `🗣️ Real talk about ${theme}:\n\nWhat would make this easier for you? ${brandValue || 'We listen'} because ${audience} deserve the best.\n\nTell us what you think! 💬`,
+      `❓ Pop quiz for ${audience}:\n\nWhen it comes to ${theme}, what's your go-to approach? ${keyMessage || 'We love learning from you!'}\n\nShare in comments! 👇`,
+      `🎤 Your turn to share!\n\n${theme} - what's working for you? ${businessDesc.split('.')[0]} and your success stories inspire us.\n\nComment below! ⬇️`,
+      `💭 Honest question:\n\nHow important is ${theme} in your daily work? ${audience} often tell us it's game-changing.\n\nWhat's your take? Drop a comment! 👇`
+    ],
+    inspirational: [
+      `🌟 Your potential with ${theme} is unlimited.\n\n${brandValue || 'We believe in you'}. ${audience} like you are achieving amazing things every day.\n\n${businessDesc.split('.')[0]}. ${cta}!`,
+      `✨ Transform your approach to ${theme}:\n\n${keyMessage || 'Success isn't just possible—it's within reach.'} ${audience} are already making it happen.\n\nReady to join them? ${cta}!`,
+      `🚀 The future of ${theme} is bright.\n\nAnd ${audience} are leading the way! ${brandValue || 'Innovation and excellence'} drive everything we do.\n\n${businessDesc.split('.')[0]}. ${cta}!`,
+      `💪 You've got this!\n\n${theme} might seem daunting, but ${audience} like you prove every day that it's achievable. ${keyMessage || 'Small steps lead to big results.'}\n\n${cta}!`,
+      `🎯 Dream bigger with ${theme}:\n\n${brandValue || 'Excellence'} isn't an accident—it's a choice. ${businessDesc.split('.')[0]}.\n\nStart your journey today. ${cta}!`,
+      `🌈 Success story alert!\n\n${audience} are mastering ${theme} and achieving incredible results. ${keyMessage || 'You could be next!'}\n\n${cta}!`,
+      `⭐ Believe in possibilities:\n\n${theme} is your pathway to growth. ${brandValue || 'We're committed'} to helping ${audience} thrive.\n\n${businessDesc.split('.')[0]}. ${cta}!`
+    ]
   };
 
-  return templates[type as keyof typeof templates] || `${theme} - ${business}`;
+  // Get template variations for this type
+  const typeTemplates = templates[type as keyof typeof templates] || templates.educational;
+
+  // Rotate through templates for variety
+  const template = typeTemplates[postIndex % typeTemplates.length];
+
+  return template;
+}
+
+function generateVariedHashtags(
+  strategyHashtags: string[],
+  theme: string,
+  postIndex: number
+): string[] {
+  if (strategyHashtags.length === 0) {
+    return [`#${theme.replace(/\s+/g, '')}`];
+  }
+
+  // Vary hashtag count between 3-7 per post
+  const hashtagCount = 3 + (postIndex % 5);
+
+  // Create a rotated copy of hashtags for variety
+  const rotationOffset = postIndex % strategyHashtags.length;
+  const rotatedHashtags = [
+    ...strategyHashtags.slice(rotationOffset),
+    ...strategyHashtags.slice(0, rotationOffset)
+  ];
+
+  // Add theme-based hashtag occasionally
+  const includeThemeTag = postIndex % 3 === 0;
+  const themeTag = `#${theme.replace(/\s+/g, '')}`;
+
+  let selectedHashtags = rotatedHashtags.slice(0, hashtagCount);
+
+  if (includeThemeTag && !selectedHashtags.includes(themeTag)) {
+    // Replace last hashtag with theme tag
+    selectedHashtags[selectedHashtags.length - 1] = themeTag;
+  }
+
+  return selectedHashtags;
 }
 
 function getOptimalPostTime(postNum: number): string {
