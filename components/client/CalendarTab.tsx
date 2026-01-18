@@ -343,22 +343,22 @@ function generateIntelligentCaption(
       `🎯 ${theme} tailored for ${audience}:\n\n${brandValue || 'Excellence'} is our standard. ${businessDesc.split('.')[0]}.\n\n${cta} today!`
     ],
     engaging: [
-      `🤔 Quick question for ${audience}:\n\nHow does ${theme} fit into your strategy? ${keyMessage || 'We'd love to hear your thoughts!'}\n\nDrop a comment below! 👇`,
+      `🤔 Quick question for ${audience}:\n\nHow does ${theme} fit into your strategy? ${keyMessage || `We'd love to hear your thoughts!`}\n\nDrop a comment below! 👇`,
       `💬 Let's discuss ${theme}!\n\nWhat's your biggest challenge with this? ${businessDesc.split('.')[0]} and we're here to help.\n\nShare your experience! 💭`,
       `👋 ${audience}, we need your input!\n\n${theme} - love it or find it challenging? ${keyMessage || 'Your feedback helps us serve you better.'}\n\nComment below! ⬇️`,
       `🗣️ Real talk about ${theme}:\n\nWhat would make this easier for you? ${brandValue || 'We listen'} because ${audience} deserve the best.\n\nTell us what you think! 💬`,
-      `❓ Pop quiz for ${audience}:\n\nWhen it comes to ${theme}, what's your go-to approach? ${keyMessage || 'We love learning from you!'}\n\nShare in comments! 👇`,
+      `❓ Pop quiz for ${audience}:\n\nWhen it comes to ${theme}, what's your go-to approach? ${keyMessage || `We love learning from you!`}\n\nShare in comments! 👇`,
       `🎤 Your turn to share!\n\n${theme} - what's working for you? ${businessDesc.split('.')[0]} and your success stories inspire us.\n\nComment below! ⬇️`,
       `💭 Honest question:\n\nHow important is ${theme} in your daily work? ${audience} often tell us it's game-changing.\n\nWhat's your take? Drop a comment! 👇`
     ],
     inspirational: [
       `🌟 Your potential with ${theme} is unlimited.\n\n${brandValue || 'We believe in you'}. ${audience} like you are achieving amazing things every day.\n\n${businessDesc.split('.')[0]}. ${cta}!`,
-      `✨ Transform your approach to ${theme}:\n\n${keyMessage || 'Success isn't just possible—it's within reach.'} ${audience} are already making it happen.\n\nReady to join them? ${cta}!`,
+      `✨ Transform your approach to ${theme}:\n\n${keyMessage || `Success isn't just possible—it's within reach.`} ${audience} are already making it happen.\n\nReady to join them? ${cta}!`,
       `🚀 The future of ${theme} is bright.\n\nAnd ${audience} are leading the way! ${brandValue || 'Innovation and excellence'} drive everything we do.\n\n${businessDesc.split('.')[0]}. ${cta}!`,
       `💪 You've got this!\n\n${theme} might seem daunting, but ${audience} like you prove every day that it's achievable. ${keyMessage || 'Small steps lead to big results.'}\n\n${cta}!`,
       `🎯 Dream bigger with ${theme}:\n\n${brandValue || 'Excellence'} isn't an accident—it's a choice. ${businessDesc.split('.')[0]}.\n\nStart your journey today. ${cta}!`,
-      `🌈 Success story alert!\n\n${audience} are mastering ${theme} and achieving incredible results. ${keyMessage || 'You could be next!'}\n\n${cta}!`,
-      `⭐ Believe in possibilities:\n\n${theme} is your pathway to growth. ${brandValue || 'We're committed'} to helping ${audience} thrive.\n\n${businessDesc.split('.')[0]}. ${cta}!`
+      `🌈 Success story alert!\n\n${audience} are mastering ${theme} and achieving incredible results. ${keyMessage || `You could be next!`}\n\n${cta}!`,
+      `⭐ Believe in possibilities:\n\n${theme} is your pathway to growth. ${brandValue || `We're committed`} to helping ${audience} thrive.\n\n${businessDesc.split('.')[0]}. ${cta}!`
     ]
   };
 
