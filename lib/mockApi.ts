@@ -16,6 +16,30 @@ interface Client {
   industry?: string;
   website?: string;
   active: boolean;
+  businessProfile?: {
+    businessDescription: string;
+    targetAudience: string;
+    brandVoice: string;
+    contentGoals: string[];
+    industries: string[];
+    keyMessages: string[];
+    competitorUrls: string[];
+    brandValues: string[];
+  };
+  contentStrategy?: {
+    contentThemes: string[];
+    postingFrequency: number;
+    contentMix: {
+      educational: number;
+      promotional: number;
+      engaging: number;
+      inspirational: number;
+    };
+    hashtagStrategy: string[];
+    callToActions: string[];
+    visualStyle: string;
+    toneGuidelines: string;
+  };
   createdAt: string;
 }
 

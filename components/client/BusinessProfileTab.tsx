@@ -59,8 +59,33 @@ export function BusinessProfileTab({ clientId, clientName }: { clientId: string;
   });
 
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [tempInput, setTempInput] = useState('');
   const [activeSection, setActiveSection] = useState<'profile' | 'strategy'>('profile');
+
+  // Load existing data when component mounts
+  useEffect(() => {
+    const loadClientData = async () => {
+      try {
+        const response = await clientsApi.getById(clientId);
+        const client = response.data.data;
+
+        if (client.businessProfile) {
+          setProfile(client.businessProfile);
+        }
+
+        if (client.contentStrategy) {
+          setStrategy(client.contentStrategy);
+        }
+      } catch (error) {
+        console.error('Failed to load client data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadClientData();
+  }, [clientId]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -110,6 +135,17 @@ export function BusinessProfileTab({ clientId, clientName }: { clientId: string;
       });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="text-4xl mb-3">⏳</div>
+          <p className="text-gray-600">Loading business intelligence...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
