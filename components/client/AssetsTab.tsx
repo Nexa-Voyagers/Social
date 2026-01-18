@@ -31,11 +31,7 @@ export function AssetsTab({ clientId }: { clientId: string }) {
   const [logoOpacity, setLogoOpacity] = useState(90);
   const [activeTab, setActiveTab] = useState<'all' | 'logo' | 'image' | 'video'>('all');
 
-  useEffect(() => {
-    fetchAssets();
-  }, [clientId]);
-
-  const fetchAssets = async () => {
+  const fetchAssets = useCallback(async () => {
     try {
       const response = await assetsApi.getByClient(clientId);
       setAssets(response.data.data || []);
@@ -44,7 +40,11 @@ export function AssetsTab({ clientId }: { clientId: string }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clientId]);
+
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setUploading(true);
@@ -64,7 +64,7 @@ export function AssetsTab({ clientId }: { clientId: string }) {
     } finally {
       setUploading(false);
     }
-  }, [clientId]);
+  }, [clientId, fetchAssets]);
 
   const onLogoUpload = useCallback(async (acceptedFiles: File[]) => {
     setUploading(true);
@@ -89,7 +89,7 @@ export function AssetsTab({ clientId }: { clientId: string }) {
     } finally {
       setUploading(false);
     }
-  }, [clientId, logoPlacement, logoSize, logoOpacity]);
+  }, [clientId, logoPlacement, logoSize, logoOpacity, fetchAssets]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

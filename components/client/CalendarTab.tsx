@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { calendarApi } from '@/lib/api';
@@ -28,11 +28,7 @@ export function CalendarTab({ clientId, clientName }: { clientId: string; client
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  useEffect(() => {
-    fetchContent();
-  }, [clientId]);
-
-  const fetchContent = async () => {
+  const fetchContent = useCallback(async () => {
     try {
       const response = await calendarApi.getByClient(clientId);
       setContent(response.data.data || []);
@@ -41,7 +37,11 @@ export function CalendarTab({ clientId, clientName }: { clientId: string; client
     } finally {
       setLoading(false);
     }
-  };
+  }, [clientId]);
+
+  useEffect(() => {
+    fetchContent();
+  }, [fetchContent]);
 
   if (loading) {
     return <div className="text-gray-500">Loading calendar...</div>;

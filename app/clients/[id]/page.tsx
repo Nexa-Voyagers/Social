@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/Button';
@@ -33,11 +33,7 @@ export default function ClientDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'assets' | 'calendar' | 'platforms'>('overview');
 
-  useEffect(() => {
-    fetchClient();
-  }, [clientId]);
-
-  const fetchClient = async () => {
+  const fetchClient = useCallback(async () => {
     try {
       const response = await clientsApi.getById(clientId);
       setClient(response.data.data);
@@ -48,7 +44,11 @@ export default function ClientDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clientId, router]);
+
+  useEffect(() => {
+    fetchClient();
+  }, [fetchClient]);
 
   if (loading || !client) {
     return (
