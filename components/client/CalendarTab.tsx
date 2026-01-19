@@ -3,13 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { clientsApi, assetsApi } from '@/lib/api';
-import { format, addDays } from 'date-fns';
+import { format, addDays, startOfWeek, addWeeks } from 'date-fns';
 
 interface GeneratedPost {
   id: string;
   date: string;
   time: string;
-  type: 'educational' | 'promotional' | 'engaging' | 'inspirational';
+  contentType: 'educational' | 'promotional' | 'engaging' | 'inspirational';
+  postFormat: 'image' | 'video' | 'carousel' | 'text' | 'quote' | 'tip' | 'announcement';
   caption: string;
   imageUrl?: string;
   videoUrl?: string;
@@ -23,73 +24,86 @@ export function CalendarTab({ clientId, clientName }: { clientId: string; client
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [client, setClient] = useState<any>(null);
+  const [currentWeek, setCurrentWeek] = useState(0);
 
   const fetchClientAndGeneratePosts = useCallback(async () => {
     try {
-      // Get client with business intelligence
       const clientResponse = await clientsApi.getById(clientId);
       const clientData = clientResponse.data.data;
       setClient(clientData);
 
-      // Get client assets
       const assetsResponse = await assetsApi.getByClient(clientId);
       const assets = assetsResponse.data.data || [];
 
-      // Check if business intelligence is filled
       if (!clientData.businessProfile || !clientData.contentStrategy) {
         setPosts([]);
         setLoading(false);
         return;
       }
 
-      // Generate posts based on strategy
+      const profile = clientData.businessProfile;
       const strategy = clientData.contentStrategy;
       const postsPerDay = strategy.postingFrequency || 1;
       const totalDays = 30;
       const generatedPosts: GeneratedPost[] = [];
 
+      // Extract clean business name (first sentence or first 50 chars)
+      const businessName = clientData.name || 'Our Business';
+      const businessDesc = profile.businessDescription || '';
+      const businessFocus = businessDesc.split('.')[0] || businessDesc.substring(0, 50);
+
       // Content type distribution
       const contentTypes: Array<'educational' | 'promotional' | 'engaging' | 'inspirational'> = [];
       const mix = strategy.contentMix;
 
-      // Build content type array based on percentages
       for (let i = 0; i < mix.educational; i++) contentTypes.push('educational');
       for (let i = 0; i < mix.promotional; i++) contentTypes.push('promotional');
       for (let i = 0; i < mix.engaging; i++) contentTypes.push('engaging');
       for (let i = 0; i < mix.inspirational; i++) contentTypes.push('inspirational');
 
-      let contentTypeIndex = 0;
+      // Post format variety
+      const postFormats: Array<'image' | 'video' | 'carousel' | 'text' | 'quote' | 'tip' | 'announcement'> = [
+        'image', 'image', 'video', 'carousel', 'text', 'quote', 'tip', 'announcement'
+      ];
 
-      // Filter available images and videos
       const images = assets.filter((a: any) => a.type === 'image');
       const videos = assets.filter((a: any) => a.type === 'video');
-      const allVisuals = [...images, ...videos];
+
+      let contentTypeIndex = 0;
+      let postFormatIndex = 0;
 
       for (let day = 0; day < totalDays; day++) {
         for (let postNum = 0; postNum < postsPerDay; postNum++) {
           const postDate = addDays(new Date(), day);
           const contentType = contentTypes[contentTypeIndex % contentTypes.length];
+          const postFormat = postFormats[postFormatIndex % postFormats.length];
+
           contentTypeIndex++;
+          postFormatIndex++;
 
-          // Select theme sequentially with variation
           const themeIndex = (day * postsPerDay + postNum) % strategy.contentThemes.length;
-          const theme = strategy.contentThemes[themeIndex] || 'General Update';
+          const theme = strategy.contentThemes[themeIndex] || 'Update';
 
-          // Cycle through visuals sequentially for variety (not random)
-          const visualIndex = (day * postsPerDay + postNum) % Math.max(allVisuals.length, 1);
-          const selectedVisual = allVisuals[visualIndex];
-
-          // Generate unique caption with variation
-          const caption = generateIntelligentCaption(
+          // Generate professional short caption
+          const caption = generateProfessionalCaption(
             contentType,
+            postFormat,
             theme,
-            clientData.businessProfile,
-            strategy,
-            day * postsPerDay + postNum // Pass index for variation
+            businessName,
+            day * postsPerDay + postNum
           );
 
-          // Generate varied hashtags (rotate and randomize count)
-          const hashtags = generateVariedHashtags(
+          // Select visual based on format
+          let imageUrl, videoUrl;
+          if (postFormat === 'video' && videos.length > 0) {
+            const videoIndex = (day * postsPerDay + postNum) % videos.length;
+            videoUrl = videos[videoIndex].url;
+          } else if (['image', 'carousel'].includes(postFormat) && images.length > 0) {
+            const imageIndex = (day * postsPerDay + postNum) % images.length;
+            imageUrl = images[imageIndex].url;
+          }
+
+          const hashtags = generateSmartHashtags(
             strategy.hashtagStrategy,
             theme,
             day * postsPerDay + postNum
@@ -97,12 +111,13 @@ export function CalendarTab({ clientId, clientName }: { clientId: string; client
 
           generatedPosts.push({
             id: `post-${day}-${postNum}`,
-            date: format(postDate, 'MMM dd, yyyy'),
+            date: format(postDate, 'yyyy-MM-dd'),
             time: getOptimalPostTime(postNum),
-            type: contentType,
+            contentType,
+            postFormat,
             caption,
-            imageUrl: selectedVisual?.type === 'image' ? selectedVisual.url : undefined,
-            videoUrl: selectedVisual?.type === 'video' ? selectedVisual.url : undefined,
+            imageUrl,
+            videoUrl,
             platforms: ['Facebook', 'Instagram', 'LinkedIn'],
             hashtags,
             status: 'scheduled'
@@ -143,270 +158,333 @@ export function CalendarTab({ clientId, clientName }: { clientId: string; client
     return (
       <Card>
         <CardContent className="text-center py-12">
-          <div className="text-6xl mb-4">🤖</div>
+          <div className="text-6xl mb-4">📅</div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">Business Intelligence Required</h3>
           <p className="text-gray-600 mb-4">
-            Fill in the Business Intelligence tab first to automatically generate posts!
-          </p>
-          <p className="text-sm text-gray-500">
-            The AI needs to understand your business before it can create content.
+            Complete the Business Intelligence tab to generate your content calendar
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  const totalPosts = posts.length;
-  const postsPerDay = client.contentStrategy.postingFrequency;
+  // Group posts by week
+  const weekStart = addWeeks(startOfWeek(new Date()), currentWeek);
+  const weekPosts = posts.filter(post => {
+    const postDate = new Date(post.date);
+    const weekEnd = addDays(weekStart, 7);
+    return postDate >= weekStart && postDate < weekEnd;
+  });
+
+  const groupedByDay: { [key: string]: GeneratedPost[] } = {};
+  weekPosts.forEach(post => {
+    if (!groupedByDay[post.date]) {
+      groupedByDay[post.date] = [];
+    }
+    groupedByDay[post.date].push(post);
+  });
 
   return (
     <div className="space-y-6">
-      {/* Header Stats */}
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Content Calendar</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            {posts.length} posts scheduled over 30 days • {client.contentStrategy.postingFrequency} post{client.contentStrategy.postingFrequency > 1 ? 's' : ''} per day
+          </p>
+        </div>
+        <button
+          onClick={regenerateAll}
+          disabled={generating}
+          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+        >
+          {generating ? '🔄 Regenerating...' : '🔄 Regenerate Calendar'}
+        </button>
+      </div>
+
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-6">
-            <div className="text-3xl font-bold text-blue-600">{totalPosts}</div>
-            <div className="text-sm text-gray-600">Total Posts</div>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-blue-600">{posts.length}</div>
+            <div className="text-xs text-gray-600">Total Posts</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="text-3xl font-bold text-green-600">{postsPerDay}</div>
-            <div className="text-sm text-gray-600">Posts Per Day</div>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-green-600">
+              {posts.filter(p => p.postFormat === 'video').length}
+            </div>
+            <div className="text-xs text-gray-600">Video Posts</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="text-3xl font-bold text-purple-600">30</div>
-            <div className="text-sm text-gray-600">Days Scheduled</div>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-purple-600">
+              {posts.filter(p => p.postFormat === 'image').length}
+            </div>
+            <div className="text-xs text-gray-600">Image Posts</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="text-3xl font-bold text-orange-600">3</div>
-            <div className="text-sm text-gray-600">Platforms</div>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-orange-600">3</div>
+            <div className="text-xs text-gray-600">Platforms</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Automation Status */}
-      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="text-5xl">🤖✨</div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">AI Automation Active</h3>
-                <p className="text-sm text-gray-600">
-                  {totalPosts} posts auto-generated and ready to publish over the next 30 days
-                </p>
-                <p className="text-xs text-blue-600 mt-1">
-                  ⚡ Posts will automatically publish to Facebook, Instagram, and LinkedIn
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={regenerateAll}
-              disabled={generating}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {generating ? '🔄 Regenerating...' : '🔄 Regenerate All'}
-            </button>
+      {/* Week Navigation */}
+      <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+        <button
+          onClick={() => setCurrentWeek(Math.max(0, currentWeek - 1))}
+          disabled={currentWeek === 0}
+          className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          ← Previous Week
+        </button>
+        <div className="text-center">
+          <div className="font-semibold text-gray-900">
+            Week {currentWeek + 1} of 5
           </div>
-        </CardContent>
-      </Card>
+          <div className="text-sm text-gray-600">
+            {format(weekStart, 'MMM dd')} - {format(addDays(weekStart, 6), 'MMM dd, yyyy')}
+          </div>
+        </div>
+        <button
+          onClick={() => setCurrentWeek(Math.min(4, currentWeek + 1))}
+          disabled={currentWeek >= 4}
+          className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next Week →
+        </button>
+      </div>
 
-      {/* Posts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {posts.map((post) => (
-          <Card key={post.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-500">{post.date} at {post.time}</span>
-                <span className={`text-xs px-2 py-1 rounded-full ${getTypeColor(post.type)}`}>
-                  {post.type}
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Image Preview */}
-              {post.imageUrl && (
-                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                  <img src={post.imageUrl} alt="Post" className="w-full h-full object-cover" />
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-7 gap-3">
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+          <div key={day} className="text-center font-semibold text-gray-700 text-sm py-2">
+            {day}
+          </div>
+        ))}
+
+        {Array.from({ length: 7 }).map((_, dayIndex) => {
+          const currentDay = addDays(weekStart, dayIndex);
+          const dayKey = format(currentDay, 'yyyy-MM-dd');
+          const dayPosts = groupedByDay[dayKey] || [];
+
+          return (
+            <Card key={dayIndex} className="min-h-[200px]">
+              <CardHeader className="pb-2">
+                <div className="text-sm font-semibold text-gray-900">
+                  {format(currentDay, 'd')}
                 </div>
-              )}
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {dayPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    className={`p-2 rounded text-xs border-l-4 ${getFormatColor(post.postFormat)}`}
+                  >
+                    <div className="flex items-center gap-1 mb-1">
+                      <span>{getFormatIcon(post.postFormat)}</span>
+                      <span className="font-medium">{post.time}</span>
+                    </div>
+                    <p className="text-gray-700 line-clamp-2 text-xs">
+                      {post.caption}
+                    </p>
+                    <div className="flex gap-1 mt-1">
+                      {post.platforms.slice(0, 3).map((p) => (
+                        <span key={p} className="text-xs">
+                          {getPlatformIcon(p)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {dayPosts.length === 0 && (
+                  <div className="text-center text-gray-400 text-xs py-4">No posts</div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
-              {/* Caption */}
-              <p className="text-sm text-gray-800 line-clamp-3">{post.caption}</p>
+      {/* Post Details Section */}
+      <Card>
+        <CardHeader>
+          <h3 className="text-lg font-semibold">Week {currentWeek + 1} Posts Preview</h3>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {weekPosts.map((post) => (
+              <div key={post.id} className="border-l-4 border-blue-500 pl-4 py-2">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{getFormatIcon(post.postFormat)}</span>
+                    <div>
+                      <div className="font-semibold text-gray-900">
+                        {format(new Date(post.date), 'EEEE, MMM dd')} at {post.time}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {post.contentType} • {post.postFormat}
+                      </div>
+                    </div>
+                  </div>
+                  <span className={`text-xs px-3 py-1 rounded-full ${getTypeColor(post.contentType)}`}>
+                    {post.contentType}
+                  </span>
+                </div>
 
-              {/* Hashtags */}
-              {post.hashtags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
+                {(post.imageUrl || post.videoUrl) && (
+                  <div className="my-3">
+                    {post.imageUrl && (
+                      <img
+                        src={post.imageUrl}
+                        alt="Post"
+                        className="w-full max-w-md h-64 object-cover rounded-lg"
+                      />
+                    )}
+                    {post.videoUrl && (
+                      <video
+                        src={post.videoUrl}
+                        className="w-full max-w-md h-64 object-cover rounded-lg"
+                        controls
+                      />
+                    )}
+                  </div>
+                )}
+
+                <p className="text-gray-800 mb-2">{post.caption}</p>
+
+                <div className="flex flex-wrap gap-2 mb-2">
                   {post.hashtags.map((tag, i) => (
-                    <span key={i} className="text-xs text-blue-600">
+                    <span key={i} className="text-sm text-blue-600">
                       {tag}
                     </span>
                   ))}
                 </div>
-              )}
 
-              {/* Platforms */}
-              <div className="flex gap-2 pt-2 border-t">
-                {post.platforms.map((platform) => (
-                  <span key={platform} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                    {getPlatformIcon(platform)} {platform}
-                  </span>
-                ))}
+                <div className="flex gap-2">
+                  {post.platforms.map((platform) => (
+                    <span
+                      key={platform}
+                      className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded flex items-center gap-1"
+                    >
+                      {getPlatformIcon(platform)} {platform}
+                    </span>
+                  ))}
+                </div>
               </div>
-
-              {/* Status */}
-              <div className="flex items-center gap-2 text-xs text-green-600">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                Auto-posting {post.date}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Info Footer */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-6">
-          <h4 className="font-semibold text-blue-900 mb-3">📅 How Auto-Generation Works</h4>
-          <ul className="space-y-2 text-sm text-blue-800">
-            <li>✅ AI analyzes your Business Intelligence (business description, audience, brand voice)</li>
-            <li>✅ Generates {postsPerDay} unique {postsPerDay === 1 ? 'post' : 'posts'} per day based on your content strategy</li>
-            <li>✅ Selects best images from your uploaded assets</li>
-            <li>✅ Adds your logo watermark to all images</li>
-            <li>✅ Includes your hashtags and call-to-actions</li>
-            <li>✅ Automatically posts at optimal times to maximize engagement</li>
-            <li>✅ Posts to all connected platforms (Facebook, Instagram, LinkedIn)</li>
-          </ul>
-          <p className="text-xs text-blue-600 mt-4">
-            💡 Tip: Update Business Intelligence or upload new images anytime, then click &quot;Regenerate All&quot; to refresh your content calendar!
-          </p>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
   );
 }
 
-// Helper functions
-function generateIntelligentCaption(
-  type: string,
+// PROFESSIONAL SHORT CAPTION GENERATOR
+function generateProfessionalCaption(
+  contentType: string,
+  postFormat: string,
   theme: string,
-  profile: any,
-  strategy: any,
-  postIndex: number
+  businessName: string,
+  index: number
 ): string {
-  // Extract business intelligence
-  const businessDesc = profile.businessDescription || '';
-  const audience = profile.targetAudience || '';
-  const brandVoice = profile.brandVoice || 'professional';
-  const keyMessages = profile.keyMessages || [];
-  const brandValues = profile.brandValues || [];
-
-  // Rotate through CTAs for variety
-  const ctas = strategy.callToActions.length > 0
-    ? strategy.callToActions
-    : ['Learn more', 'Get started', 'Discover more', 'Join us', 'Find out how'];
-  const cta = ctas[postIndex % ctas.length];
-
-  // Get a key message if available
-  const keyMessage = keyMessages.length > 0
-    ? keyMessages[postIndex % keyMessages.length]
-    : '';
-
-  // Get a brand value if available
-  const brandValue = brandValues.length > 0
-    ? brandValues[postIndex % brandValues.length]
-    : '';
-
-  // Multiple template variations for each content type
   const templates: Record<string, string[]> = {
     educational: [
-      `💡 ${theme} Insight:\n\n${keyMessage || `Understanding ${theme} is essential for ${audience}.`}\n\n${businessDesc.split('.')[0]}.\n\n${cta}!`,
-      `📚 Let's talk about ${theme}.\n\nFor ${audience}, this matters because it directly impacts your success. ${keyMessage || `We've helped countless clients master this.`}\n\n${cta} 👉`,
-      `🎓 Did you know?\n\n${theme} is one of the most overlooked aspects by ${audience}. ${keyMessage || `But it doesn't have to be complicated.`}\n\n${businessDesc.split('.')[0]}. ${cta}!`,
-      `🔍 Deep dive into ${theme}:\n\n${keyMessage || `Here's what ${audience} need to know...`}\n\nWe believe ${brandValue || 'in empowering our clients with knowledge'}.\n\n${cta}!`,
-      `✨ Expert tip about ${theme}:\n\n${keyMessage || `Most ${audience} miss this crucial detail.`} Let us show you the difference.\n\n${cta}!`,
-      `📖 ${theme} explained simply:\n\nWe understand that ${audience} are busy. That's why we make it easy. ${keyMessage || businessDesc.split('.')[0]}.\n\n${cta}!`,
-      `🧠 Smart thinking about ${theme}:\n\n${keyMessage || `The best ${audience} know this secret.`} Ready to level up?\n\n${cta}!`
+      `Quick tip: ${theme} can transform your approach. Here's what you need to know.`,
+      `Did you know? ${theme} is a game-changer. Let's explore why.`,
+      `Today's focus: ${theme}. Master this and see real results.`,
+      `The secret to ${theme}? It's simpler than you think.`,
+      `Why ${theme} matters: A quick breakdown for you.`,
+      `${theme} 101: Everything you need to get started.`,
+      `Understanding ${theme} made easy. Check this out.`
     ],
     promotional: [
-      `🎉 Exciting news about ${theme}!\n\n${businessDesc.split('.')[0]}. Perfect for ${audience}.\n\n${cta} today! 🚀`,
-      `🌟 Special focus on ${theme}:\n\nWe're proud to offer solutions that ${audience} love. ${keyMessage || 'Quality and results are our priority.'}\n\n${cta}!`,
-      `⭐ Why choose us for ${theme}?\n\nSimple: ${brandValue || 'We deliver results'}. ${businessDesc.split('.')[0]}.\n\nReady to see the difference? ${cta}!`,
-      `🔥 ${theme} made simple!\n\nDesigned specifically for ${audience}, our approach is different. ${keyMessage || 'We focus on what matters most to you.'}\n\n${cta}!`,
-      `💼 Professional ${theme} solutions:\n\n${businessDesc.split('.')[0]}. Trusted by ${audience} worldwide.\n\n${cta} 👉`,
-      `✅ Looking for ${theme} expertise?\n\nYou're in the right place! ${keyMessage || `We specialize in helping ${audience} succeed.`}\n\n${cta}!`,
-      `🎯 ${theme} tailored for ${audience}:\n\n${brandValue || 'Excellence'} is our standard. ${businessDesc.split('.')[0]}.\n\n${cta} today!`
+      `Ready to elevate your ${theme}? We've got you covered.`,
+      `Transform your ${theme} today. Results you can see.`,
+      `${businessName} makes ${theme} effortless. Discover how.`,
+      `Your ${theme} solution is here. Let's get started.`,
+      `Unlock better ${theme} with ${businessName}. See the difference.`,
+      `${theme} excellence starts here. Join us today.`,
+      `Experience ${theme} done right. Your success is our mission.`
     ],
     engaging: [
-      `🤔 Quick question for ${audience}:\n\nHow does ${theme} fit into your strategy? ${keyMessage || `We'd love to hear your thoughts!`}\n\nDrop a comment below! 👇`,
-      `💬 Let's discuss ${theme}!\n\nWhat's your biggest challenge with this? ${businessDesc.split('.')[0]} and we're here to help.\n\nShare your experience! 💭`,
-      `👋 ${audience}, we need your input!\n\n${theme} - love it or find it challenging? ${keyMessage || 'Your feedback helps us serve you better.'}\n\nComment below! ⬇️`,
-      `🗣️ Real talk about ${theme}:\n\nWhat would make this easier for you? ${brandValue || 'We listen'} because ${audience} deserve the best.\n\nTell us what you think! 💬`,
-      `❓ Pop quiz for ${audience}:\n\nWhen it comes to ${theme}, what's your go-to approach? ${keyMessage || `We love learning from you!`}\n\nShare in comments! 👇`,
-      `🎤 Your turn to share!\n\n${theme} - what's working for you? ${businessDesc.split('.')[0]} and your success stories inspire us.\n\nComment below! ⬇️`,
-      `💭 Honest question:\n\nHow important is ${theme} in your daily work? ${audience} often tell us it's game-changing.\n\nWhat's your take? Drop a comment! 👇`
+      `Quick question: What's your take on ${theme}? Drop a comment!`,
+      `Let's discuss ${theme}. What's working for you?`,
+      `Your opinion matters: How do you approach ${theme}?`,
+      `${theme} - love it or find it challenging? Let us know!`,
+      `What's your ${theme} strategy? Share below!`,
+      `Real talk: How does ${theme} fit into your workflow?`,
+      `We want to hear from you about ${theme}. Comment below!`
     ],
     inspirational: [
-      `🌟 Your potential with ${theme} is unlimited.\n\n${brandValue || 'We believe in you'}. ${audience} like you are achieving amazing things every day.\n\n${businessDesc.split('.')[0]}. ${cta}!`,
-      `✨ Transform your approach to ${theme}:\n\n${keyMessage || `Success isn't just possible—it's within reach.`} ${audience} are already making it happen.\n\nReady to join them? ${cta}!`,
-      `🚀 The future of ${theme} is bright.\n\nAnd ${audience} are leading the way! ${brandValue || 'Innovation and excellence'} drive everything we do.\n\n${businessDesc.split('.')[0]}. ${cta}!`,
-      `💪 You've got this!\n\n${theme} might seem daunting, but ${audience} like you prove every day that it's achievable. ${keyMessage || 'Small steps lead to big results.'}\n\n${cta}!`,
-      `🎯 Dream bigger with ${theme}:\n\n${brandValue || 'Excellence'} isn't an accident—it's a choice. ${businessDesc.split('.')[0]}.\n\nStart your journey today. ${cta}!`,
-      `🌈 Success story alert!\n\n${audience} are mastering ${theme} and achieving incredible results. ${keyMessage || `You could be next!`}\n\n${cta}!`,
-      `⭐ Believe in possibilities:\n\n${theme} is your pathway to growth. ${brandValue || `We're committed`} to helping ${audience} thrive.\n\n${businessDesc.split('.')[0]}. ${cta}!`
+      `Your potential with ${theme} is limitless. Keep pushing forward.`,
+      `${theme} success is within reach. Believe in your journey.`,
+      `Transform your ${theme} game. You've got this!`,
+      `The future of ${theme} starts with you. Make it happen.`,
+      `Dream bigger with ${theme}. Your success story begins now.`,
+      `${theme} mastery awaits. Take the first step today.`,
+      `Your ${theme} breakthrough is closer than you think.`
     ]
   };
 
-  // Get template variations for this type
-  const typeTemplates = templates[type as keyof typeof templates] || templates.educational;
-
-  // Rotate through templates for variety
-  const template = typeTemplates[postIndex % typeTemplates.length];
-
-  return template;
+  const typeTemplates = templates[contentType] || templates.educational;
+  return typeTemplates[index % typeTemplates.length];
 }
 
-function generateVariedHashtags(
+function generateSmartHashtags(
   strategyHashtags: string[],
   theme: string,
-  postIndex: number
+  index: number
 ): string[] {
   if (strategyHashtags.length === 0) {
     return [`#${theme.replace(/\s+/g, '')}`];
   }
 
-  // Vary hashtag count between 3-7 per post
-  const hashtagCount = 3 + (postIndex % 5);
-
-  // Create a rotated copy of hashtags for variety
-  const rotationOffset = postIndex % strategyHashtags.length;
+  const hashtagCount = 4 + (index % 4); // 4-7 hashtags
+  const rotationOffset = index % strategyHashtags.length;
   const rotatedHashtags = [
     ...strategyHashtags.slice(rotationOffset),
     ...strategyHashtags.slice(0, rotationOffset)
   ];
 
-  // Add theme-based hashtag occasionally
-  const includeThemeTag = postIndex % 3 === 0;
-  const themeTag = `#${theme.replace(/\s+/g, '')}`;
-
-  let selectedHashtags = rotatedHashtags.slice(0, hashtagCount);
-
-  if (includeThemeTag && !selectedHashtags.includes(themeTag)) {
-    // Replace last hashtag with theme tag
-    selectedHashtags[selectedHashtags.length - 1] = themeTag;
-  }
-
-  return selectedHashtags;
+  return rotatedHashtags.slice(0, hashtagCount);
 }
 
 function getOptimalPostTime(postNum: number): string {
-  const times = ['9:00 AM', '1:00 PM', '6:00 PM', '8:00 PM'];
+  const times = ['9:00 AM', '12:00 PM', '3:00 PM', '6:00 PM', '8:00 PM'];
   return times[postNum % times.length];
+}
+
+function getFormatIcon(format: string): string {
+  const icons: Record<string, string> = {
+    'image': '📷',
+    'video': '🎥',
+    'carousel': '🎠',
+    'text': '📝',
+    'quote': '💬',
+    'tip': '💡',
+    'announcement': '📢'
+  };
+  return icons[format] || '📄';
+}
+
+function getFormatColor(format: string): string {
+  const colors: Record<string, string> = {
+    'image': 'border-blue-500 bg-blue-50',
+    'video': 'border-red-500 bg-red-50',
+    'carousel': 'border-purple-500 bg-purple-50',
+    'text': 'border-gray-500 bg-gray-50',
+    'quote': 'border-green-500 bg-green-50',
+    'tip': 'border-yellow-500 bg-yellow-50',
+    'announcement': 'border-orange-500 bg-orange-50'
+  };
+  return colors[format] || 'border-gray-500 bg-gray-50';
 }
 
 function getTypeColor(type: string): string {
